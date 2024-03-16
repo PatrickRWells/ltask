@@ -190,3 +190,26 @@ pub(crate) fn test_invalid_script() {
     // check that the messgae contains "command not found"
     assert!(error.contains("command not found"));
 }
+
+#[test]
+pub(crate) fn test_kill() {
+    // get the path to the script in the tests folder relative to the crate root
+    use std::thread::sleep;
+    let script = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("scripts")
+        .join("test_kill.sh");
+    let mut task = BashScriptTask::new(script).unwrap();
+    let output_dir = tempfile::tempdir().expect("Failed to create output directory");
+
+    let output_path = output_dir.path().join("output.txt");
+    let error_path = output_dir.path().join("error.txt");
+
+    let output_file = File::create(&output_path).expect("Failed to create output file");
+    let error_file = File::create(&error_path).expect("Failed to create error file");
+
+    let _ = task.start(output_file, error_file);
+    sleep(std::time::Duration::from_secs(1));
+    let status = task.kill();
+    assert!(matches!(status, RunnableStatus::Killed));
+}
