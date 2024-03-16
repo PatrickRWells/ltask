@@ -1,0 +1,2 @@
+# invalid bash
+asdfasdf -r
