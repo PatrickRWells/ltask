@@ -133,22 +133,20 @@ pub(crate) fn test_executable_passes() {
 pub(crate) fn test_running() {
     // get the path to the script in the tests folder relative to the crate root
     use std::thread::sleep;
+
     let script = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("tests")
         .join("scripts")
         .join("test_loop.sh");
     let mut task = BashScriptTask::new(script).unwrap();
-    let output = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests")
-        .join("scripts")
-        .join("test_loop.out");
-    let error = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests")
-        .join("scripts")
-        .join("test_loop.err");
 
-    let output_file = File::create(&output).expect("Failed to create output file");
-    let error_file = File::create(&error).expect("Failed to create error file");
+    let output_dir = tempfile::tempdir().expect("Failed to create output directory");
+
+    let output_path = output_dir.path().join("output.txt");
+    let error_path = output_dir.path().join("error.txt");
+
+    let output_file = File::create(&output_path).expect("Failed to create output file");
+    let error_file = File::create(&error_path).expect("Failed to create error file");
 
     let status = task.start(output_file, error_file);
     assert!(matches!(status, RunnableStatus::Running));
@@ -157,7 +155,7 @@ pub(crate) fn test_running() {
     assert!(matches!(task.status(), RunnableStatus::Finished));
 
     // get the contents of the output
-    let output = std::fs::read_to_string(output).expect("Failed to read output file");
+    let output = std::fs::read_to_string(output_path).expect("Failed to read output file");
     let expected = (1..11).map(|x| format!("{}\n", x)).collect::<String>();
     assert_eq!(output, expected);
 }
