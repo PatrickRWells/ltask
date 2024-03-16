@@ -169,24 +169,20 @@ pub(crate) fn test_invalid_script() {
         .join("scripts")
         .join("test_invalid.sh");
     let mut task = BashScriptTask::new(script).unwrap();
-    let output = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests")
-        .join("scripts")
-        .join("test_invalid.out");
-    let error = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests")
-        .join("scripts")
-        .join("test_invalid.err");
+    let output_dir = tempfile::tempdir().expect("Failed to create output directory");
 
-    let output_file = File::create(&output).expect("Failed to create output file");
-    let error_file = File::create(&error).expect("Failed to create error file");
+    let output_path = output_dir.path().join("output.txt");
+    let error_path = output_dir.path().join("error.txt");
+
+    let output_file = File::create(&output_path).expect("Failed to create output file");
+    let error_file = File::create(&error_path).expect("Failed to create error file");
 
     let status = task.start(output_file, error_file);
     sleep(std::time::Duration::from_secs(1));
     assert!(matches!(task.status(), RunnableStatus::Error(_)));
 
     // get the contents of the error
-    let error = std::fs::read_to_string(error).expect("Failed to read error file");
+    let error = std::fs::read_to_string(error_path).expect("Failed to read error file");
     // check that the messgae contains "command not found"
     assert!(error.contains("command not found"));
 }
