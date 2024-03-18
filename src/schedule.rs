@@ -1,6 +1,8 @@
 use chrono::{NaiveTime, Timelike, Weekday};
 use std::collections::HashMap;
-enum BlockType {
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+enum TimeStatus {
     Free,
     Busy,
 }
@@ -8,7 +10,7 @@ enum BlockType {
 struct TimeBlock {
     start: NaiveTime,
     end: NaiveTime,
-    block_type: BlockType,
+    block_type: TimeStatus,
 }
 
 struct DaySchedule {
@@ -67,7 +69,7 @@ impl DaySchedule {
                 TimeBlock {
                     start,
                     end,
-                    block_type: BlockType::Free,
+                    block_type: TimeStatus::Busy,
                 }
             })
             .collect();
@@ -75,6 +77,17 @@ impl DaySchedule {
         DaySchedule {
             blocks,
             interval_size,
+        }
+    }
+    fn get_time_status(&self, time: NaiveTime) -> TimeStatus {
+        let index = time_to_range_index(time, self.interval_size);
+        self.blocks[index].block_type
+    }
+    fn set_time_status(&mut self, start_time: NaiveTime, end_time: NaiveTime, status: TimeStatus) {
+        let start_index = time_to_range_index(start_time, self.interval_size);
+        let end_index = time_to_range_index(end_time, self.interval_size);
+        for i in start_index..end_index {
+            self.blocks[i].block_type = status;
         }
     }
 }
@@ -117,4 +130,34 @@ fn test_index_to_time_range() {
             NaiveTime::from_hms_opt(11, 59, 59).unwrap()
         )
     );
+}
+
+#[test]
+fn test_time_to_range_index() {
+    assert_eq!(
+        time_to_range_index(NaiveTime::from_hms_opt(0, 0, 0).unwrap(), 15),
+        0
+    );
+    assert_eq!(
+        time_to_range_index(NaiveTime::from_hms_opt(2, 15, 0).unwrap(), 15),
+        9
+    );
+    assert_eq!(
+        time_to_range_index(NaiveTime::from_hms_opt(23, 45, 0).unwrap(), 15),
+        95
+    );
+}
+
+#[test]
+fn test_block_set() {
+    let mut day_schedule = DaySchedule::new();
+    let check_time = NaiveTime::from_hms_opt(2, 17, 0).unwrap();
+    assert_eq!(day_schedule.get_time_status(check_time), TimeStatus::Busy);
+
+    let start_time = NaiveTime::from_hms_opt(2, 15, 0).unwrap();
+    let end_time = NaiveTime::from_hms_opt(3, 15, 0).unwrap();
+    let check_time_2 = NaiveTime::from_hms_opt(2, 48, 0).unwrap();
+    day_schedule.set_time_status(start_time, end_time, TimeStatus::Free);
+    assert_eq!(day_schedule.get_time_status(check_time), TimeStatus::Free);
+    assert_eq!(day_schedule.get_time_status(check_time_2), TimeStatus::Free);
 }
