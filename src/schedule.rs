@@ -107,6 +107,24 @@ impl Default for WeekSchedule {
     }
 }
 
+impl WeekSchedule {
+    fn get_time_status(&self, day: Weekday, time: NaiveTime) -> TimeStatus {
+        self.days[&day].get_time_status(time)
+    }
+    fn set_time_status(
+        &mut self,
+        day: Weekday,
+        start_time: NaiveTime,
+        end_time: NaiveTime,
+        status: TimeStatus,
+    ) {
+        self.days
+            .get_mut(&day)
+            .unwrap()
+            .set_time_status(start_time, end_time, status);
+    }
+}
+
 #[test]
 fn test_index_to_time_range() {
     assert_eq!(
@@ -160,4 +178,43 @@ fn test_block_set() {
     day_schedule.set_time_status(start_time, end_time, TimeStatus::Free);
     assert_eq!(day_schedule.get_time_status(check_time), TimeStatus::Free);
     assert_eq!(day_schedule.get_time_status(check_time_2), TimeStatus::Free);
+}
+
+#[test]
+fn test_week_block_set() {
+    let mut week_schedule = WeekSchedule::default();
+    let check_time = NaiveTime::from_hms_opt(2, 17, 0).unwrap();
+    assert_eq!(
+        week_schedule.get_time_status(Weekday::Tue, check_time),
+        TimeStatus::Busy
+    );
+
+    let start_time = NaiveTime::from_hms_opt(2, 15, 0).unwrap();
+    let end_time = NaiveTime::from_hms_opt(3, 15, 0).unwrap();
+    let check_time_2 = NaiveTime::from_hms_opt(2, 48, 0).unwrap();
+    week_schedule.set_time_status(Weekday::Tue, start_time, end_time, TimeStatus::Free);
+    assert_eq!(
+        week_schedule.get_time_status(Weekday::Tue, check_time),
+        TimeStatus::Free
+    );
+    assert_eq!(
+        week_schedule.get_time_status(Weekday::Tue, check_time_2),
+        TimeStatus::Free
+    );
+    assert_eq!(
+        week_schedule.get_time_status(Weekday::Mon, check_time),
+        TimeStatus::Busy
+    );
+    assert_eq!(
+        week_schedule.get_time_status(Weekday::Mon, check_time_2),
+        TimeStatus::Busy
+    );
+    assert_eq!(
+        week_schedule.get_time_status(Weekday::Wed, check_time),
+        TimeStatus::Busy
+    );
+    assert_eq!(
+        week_schedule.get_time_status(Weekday::Wed, check_time_2),
+        TimeStatus::Busy
+    );
 }
